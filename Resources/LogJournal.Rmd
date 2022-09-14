@@ -42,4 +42,6 @@ Attributes information:
 
 ```{r}
 data <- as_tibble(read.table("yeast.data", sep = ""))
+attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac","nuc", "loc.site" )
+colnames(data) <- attr_names
 ```
