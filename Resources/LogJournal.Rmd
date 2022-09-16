@@ -14,7 +14,7 @@ library(tidyr)
 
 ---
 
-The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast)
+The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast) The dataset has been gathered of 1484 yeast sequences from SWISS-PROT using the annotations from YPD.
 
 Attributes information:  
 
