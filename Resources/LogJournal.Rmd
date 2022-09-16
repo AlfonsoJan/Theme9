@@ -18,7 +18,7 @@ The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Y
 
 Attributes information:  
 
-1.  Sequence Name: Accession number for the SWISS-PROT database  
+1.  Sequence Name: Accession number for the SWISS-PROT database.  
 2.  mcg: McGeoch's method for signal sequence recognition.  
 3.  gvh: von Heijne's method for signal sequence recognition.  
 4.  alm: Score of the ALOM membrane spanning region prediction program.  
@@ -27,7 +27,7 @@ Attributes information:
 7.  pox: Peroxisomal targeting signal in the C-terminus.  
 8.  vac: Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins.  
 9.  nuc: Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins.  
-10. Class Distribution: The class is the localization site. Consisting of:  
+10. Class Distribution: The class is the localization site. Consisting of (abbreviation (full name) the amount):  
         
         CYT (cytosolic or cytoskeletal)                    463  
         NUC (nuclear)                                      429  
@@ -40,8 +40,45 @@ Attributes information:
         POX (peroxisomal)                                   20  
         ERL (endoplasmic reticulum lumen)                    5  
 
+## EDA of the yeast data
+
+Since there is not a codebook. I created my own codebook.
+
+```{r}
+attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac","nuc", "loc.site" )
+data_types <- c("str", "int", "int", "int", "int", "int", "bool", "int", "int", "factor")
+data_labels <- c("Accession number for the SWISS-PROT database",
+                                    "McGeoch's method for signal sequence recognition", 
+                                    "von Heijne's method for signal sequence recognition", 
+                                    "Score of the ALOM membrane spanning region prediction program",
+                                    "Score of discriminant analysis of the amino acid content of the N-terminal region",
+                                    "Presence of 'HDEL' substring",
+                                    "Peroxisomal targeting signal in the C-terminus",
+                                    "Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins",
+                                    "Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins",
+                                    "The class is the localization site")
+codebook <- data.frame(Name=attr_names, Fullname=data_labels, Datatypes=data_types)
+
+knitr::kable(codebook)
+```
+
+Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many int types.
+
+Now we need to load in the data. And change the column names to the attributes abbreviation, since these are non-existent.
+
 ```{r}
 data <- as_tibble(read.table("yeast.data", sep = ""))
-attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac","nuc", "loc.site" )
 colnames(data) <- attr_names
+
+str(data)
 ```
+
+As you can see, the last column, loc.site, consists of characters, but this one needs to be converted to factors for clarity and complexity.
+
+```{r}
+data$loc.site <- as.factor(data$loc.site)
+str(data$loc.site)
+```
+
+As you can see the data type of the column loc.site has been succesfully changed to factors.
+
