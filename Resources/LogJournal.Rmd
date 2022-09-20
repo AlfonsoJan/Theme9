@@ -5,8 +5,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, comment=NA)
 library(tidyr)
+library(kableExtra)
+library(ggplot2)
+library(gridExtra)
+library(cowplot)
 ```
 
 <!-- Copyright (c) 2022 John Busker. -->
@@ -46,7 +50,7 @@ Since there is not a codebook. I created my own codebook.
 
 ```{r}
 attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac","nuc", "loc.site" )
-data_types <- c("str", "int", "int", "int", "int", "int", "bool", "int", "int", "factor")
+data_types <- c("str", "float", "float", "float", "float", "float", "bool", "float", "float", "factor")
 data_labels <- c("Accession number for the SWISS-PROT database",
                                     "McGeoch's method for signal sequence recognition", 
                                     "von Heijne's method for signal sequence recognition", 
@@ -59,17 +63,41 @@ data_labels <- c("Accession number for the SWISS-PROT database",
                                     "The class is the localization site")
 codebook <- data.frame(Name=attr_names, Fullname=data_labels, Datatypes=data_types)
 
-knitr::kable(codebook)
+codebook %>%
+  kbl(caption = "Codebook of the data") %>%
+  kable_classic(html_font = "Cambria")
 ```
 
-Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many int types.
+Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many float datatypes.
 
-Now we need to load in the data. And change the column names to the attributes abbreviation, since these are non-existent.
+Now we need to load in the data. And change the column names to the attributes abbreviation, since these are non-existent. Let's give all the columns a name. And let's take a quick look at the data.
 
 ```{r}
 data <- as_tibble(read.table("yeast.data", sep = ""))
 colnames(data) <- attr_names
+head(data)
+```
 
+We can drop the first columns since it is not necessary.
+
+```{r}
+data <- data[, -1]
+head(data)
+```
+
+The first column has been succesfully dropped from the data.
+
+We are going to look for any missing values.
+
+```{r}
+sum(is.na(data))
+```
+
+There are not any missing values.
+
+Now we need to take a clearer look at the data set using `str()`
+
+```{r}
 str(data)
 ```
 
@@ -81,4 +109,58 @@ str(data$loc.site)
 ```
 
 As you can see the data type of the column loc.site has been succesfully changed to factors.
+
+The ERL variable also should be changed. As you can see, it is now a num data type but I needs to be a bool/binary datatype. Let's take a closer look at th ERL column.
+
+```{r}
+summary(data$erl)
+```
+
+This looks weird because the value should be 0 or 1.
+
+There are alot of 0.5 values. But should not exist in this column. The variable need to be a bool, or in other words it must be a 0 or a 1. So all the 0.5 values needs to be changed to a 0.
+
+```{r}
+table(data[, "erl"])
+```
+
+Before the data transformation there are 1470 counts of the value 0.5 and 14 of 1.
+
+```{r}
+data$erl[data$erl == 0.5] <- 0
+table(data[,"erl"])
+```
+
+The data has been succesfully transformed. Now the datatype has to be changed to a bool.
+
+```{r}
+data$erl <- as.logical(data$erl)
+str(data$erl)
+```
+
+Now every column has the right datatype.
+
+
+```{r}
+p1 <- ggplot(data, mapping = aes(x = "", y = gvh)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
+
+p2 <- ggplot(data, mapping = aes(x = "", y = alm)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
+
+p3 <- ggplot(data, mapping = aes(x = "", y = mit)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "yellow")
+
+p4 <- ggplot(data, mapping = aes(x = "", y = vac)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "green")
+
+grid.arrange(p1, p2, nrow = 1)
+grid.arrange(p3, p4, nrow = 1)
+``` 
+
+
+
+
+```{r}
+p1 <- ggplot(data, (mapping = aes(x = loc.site, y = mcg))) + geom_violin(aes(color = loc.site))
+p2 <- ggplot(data, (mapping = aes(x = loc.site, y = gvh))) + geom_violin(aes(color = loc.site))
+
+grid.arrange(p1, p2, nrow = 2)
+```
 
