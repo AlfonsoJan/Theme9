@@ -1,7 +1,7 @@
 ---
-title: "Log"
-author: "J.A. Busker"
-output: html_document
+title: 'Log Journal Project Theme 9'
+author: 'J.A. Busker (352905 BFV3)'
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +11,9 @@ library(kableExtra)
 library(ggplot2)
 library(gridExtra)
 library(cowplot)
+library(ggpubr)
+library(pander)
+library(ggbiplot)
 ```
 
 <!-- Copyright (c) 2022 John Busker. -->
@@ -22,50 +25,58 @@ The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Y
 
 Attributes information:  
 
-1.  Sequence Name: Accession number for the SWISS-PROT database.  
-2.  mcg: McGeoch's method for signal sequence recognition.  
-3.  gvh: von Heijne's method for signal sequence recognition.  
-4.  alm: Score of the ALOM membrane spanning region prediction program.  
-5.  mit: Score of discriminant analysis of the amino acid content of the N-terminal region (20 residues long) of mitochondrial and non-mitochondrial proteins.  
-6.  erl: Presence of "HDEL" substring (thought to act as a signal for retention in the endoplasmic reticulum lumen). Binary attribute.  
-7.  pox: Peroxisomal targeting signal in the C-terminus.  
-8.  vac: Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins.  
-9.  nuc: Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins.  
-10. Class Distribution: The class is the localization site. Consisting of (abbreviation (full name) the amount):  
-        
-        CYT (cytosolic or cytoskeletal)                    463  
-        NUC (nuclear)                                      429  
-        MIT (mitochondrial)                                244  
-        ME3 (membrane protein, no N-terminal signal)       163  
-        ME2 (membrane protein, uncleaved signal)            51  
-        ME1 (membrane protein, cleaved signal)              44  
-        EXC (extracellular)                                 37  
-        VAC (vacuolar)                                      30  
-        POX (peroxisomal)                                   20  
-        ERL (endoplasmic reticulum lumen)                    5  
+* **Sequence Name**: Accession number for the SWISS-PROT database.  
+* **mcg**: McGeoch's method for signal sequence recognition.  
+* **gvh**: von Heijne's method for signal sequence recognition.  
+* **alm**: Score of the ALOM membrane spanning region prediction program.  
+* **mit**: Score of discriminant analysis of the amino acid content of the N-terminal region (20 residues long) of mitochondrial and non-mitochondrial proteins.  
+* **erl**: Presence of "HDEL" substring (thought to act as a signal for retention in the endoplasmic reticulum lumen). Binary attribute.  
+* **pox**: Peroxisomal targeting signal in the C-terminus.  
+* **vac**: Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins.  
+* **nuc**: Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins.  
+* **Class Distribution**: The class is the localization site. Consisting of (abbreviation (full name) the amount):
 
-## EDA of the yeast data
+--- ---------------------------------------------- ---
+CYT (cytosolic or cytoskeletal)                    463  
+NUC (nuclear)                                      429  
+MIT (mitochondrial)                                244  
+ME3 (membrane protein, no N-terminal signal)       163  
+ME2 (membrane protein, uncleaved signal)            51  
+ME1 (membrane protein, cleaved signal)              44  
+EXC (extracellular)                                 37  
+VAC (vacuolar)                                      30  
+POX (peroxisomal)                                   20  
+ERL (endoplasmic reticulum lumen)                    5  
+--- ---------------------------------------------- --
 
 Since there is not a codebook. I created my own codebook.
 
 ```{r}
-attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac","nuc", "loc.site" )
-data_types <- c("str", "float", "float", "float", "float", "float", "bool", "float", "float", "factor")
-data_labels <- c("Accession number for the SWISS-PROT database",
-                                    "McGeoch's method for signal sequence recognition", 
-                                    "von Heijne's method for signal sequence recognition", 
-                                    "Score of the ALOM membrane spanning region prediction program",
-                                    "Score of discriminant analysis of the amino acid content of the N-terminal region",
-                                    "Presence of 'HDEL' substring",
-                                    "Peroxisomal targeting signal in the C-terminus",
-                                    "Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins",
-                                    "Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins",
-                                    "The class is the localization site")
-codebook <- data.frame(Name=attr_names, Fullname=data_labels, Datatypes=data_types)
+attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl",
+                "pox", "vac","nuc", "loc.site" )
 
-codebook %>%
-  kbl(caption = "Codebook of the data") %>%
-  kable_classic(html_font = "Cambria")
+data_types <- c("str", "float", "float", "float", "float", "float",
+                "bool", "float", "float", "factor")
+
+data_labels <- c("Accession number for the SWISS-PROT database",
+                 "McGeoch's method for signal sequence recognition",
+                 "von Heijne's method for signal sequence recognition",
+                 "Score of the ALOM membrane spanning region prediction program",
+                 "Score of discriminant analysis of the amino 
+                 acid content of the N-terminal region",
+                 "Presence of 'HDEL' substring",
+                 "Peroxisomal targeting signal in the C-terminus",
+                 "Score of discriminant analysis of the amino acid content 
+                 of vacuolar and extracellular proteins",
+                 "Score of discriminant analysis of nuclear 
+                 localization signals of nuclear and non-nuclear proteins",
+                 "The class is the localization site")
+
+codebook <- data.frame(Name=attr_names, 
+                       Fullname=data_labels, 
+                       Datatypes=data_types)
+
+pander(codebook)
 ```
 
 Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many float datatypes.
@@ -140,27 +151,46 @@ str(data$erl)
 
 Now every column has the right datatype.
 
+```{r}
+p1 <- ggplot(data, mapping = aes(x = "", y = mcg)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
+
+p2 <- ggplot(data, mapping = aes(x = "", y = gvh)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
+
+ggarrange(p1, p2, nrow = 1)
+```
+
 
 ```{r}
-p1 <- ggplot(data, mapping = aes(x = "", y = gvh)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
+p3 <- ggplot(data, mapping = aes(x = "", y = alm)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
 
-p2 <- ggplot(data, mapping = aes(x = "", y = alm)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
+p4 <- ggplot(data, mapping = aes(x = "", y = mit)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
 
-p3 <- ggplot(data, mapping = aes(x = "", y = mit)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "yellow")
-
-p4 <- ggplot(data, mapping = aes(x = "", y = vac)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "green")
-
-grid.arrange(p1, p2, nrow = 1)
-grid.arrange(p3, p4, nrow = 1)
+ggarrange(p3, p4, nrow = 1)
 ``` 
 
+```{r}
+p5 <- ggplot(data, mapping = aes(x = "", y = pox)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "yellow")
 
+p6 <- ggplot(data, mapping = aes(x = "", y = vac)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "green")
 
+ggarrange(p5, p6, nrow = 1)
+```
 
 ```{r}
-p1 <- ggplot(data, (mapping = aes(x = loc.site, y = mcg))) + geom_violin(aes(color = loc.site))
-p2 <- ggplot(data, (mapping = aes(x = loc.site, y = gvh))) + geom_violin(aes(color = loc.site))
-
-grid.arrange(p1, p2, nrow = 2)
+p1 <- ggplot(data, aes(x=mcg)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+p2 <- ggplot(data, aes(x=gvh)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+p3 <- ggplot(data, aes(x=alm)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+p4 <- ggplot(data, aes(x=mit)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+p5 <- ggplot(data, aes(x=pox)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+p6 <- ggplot(data, aes(x=vac)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
+ggarrange(p1, p2, p3, p4, p5, p6, ncol=3, nrow=2, common.legend=TRUE, legend="right")
 ```
+
+
 
