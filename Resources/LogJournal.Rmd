@@ -1,7 +1,9 @@
 ---
 title: 'Log Journal Project Theme 9'
 author: 'J.A. Busker (352905 BFV3)'
-output: pdf_document
+output:
+  pdf_document: 
+    pandoc_args: --highlight=breezedark
 ---
 
 ```{r setup, include=FALSE}
@@ -14,12 +16,20 @@ library(cowplot)
 library(ggpubr)
 library(pander)
 library(ggbiplot)
+library(ggpubr)
+library(reshape2)
+library(ggfortify)
+library(ggalt)
+library(ggridges)
+library(cluster)
 ```
 
 <!-- Copyright (c) 2022 John Busker. -->
 <!-- Licensed under GPLv3. See gpl.md -->
 
 ---
+
+## EDA of yeast data: Protein Localization
 
 The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast) The dataset has been gathered of 1484 yeast sequences from SWISS-PROT using the annotations from YPD.
 
@@ -49,15 +59,19 @@ POX (peroxisomal)                                   20
 ERL (endoplasmic reticulum lumen)                    5  
 --- ---------------------------------------------- --
 
+### Codebook
+
 Since there is not a codebook. I created my own codebook.
 
 ```{r}
+# All the attributes name
 attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl",
                 "pox", "vac","nuc", "loc.site" )
 
 data_types <- c("str", "float", "float", "float", "float", "float",
                 "bool", "float", "float", "factor")
 
+# The description of the labels
 data_labels <- c("Accession number for the SWISS-PROT database",
                  "McGeoch's method for signal sequence recognition",
                  "von Heijne's method for signal sequence recognition",
@@ -81,32 +95,41 @@ pander(codebook)
 
 Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many float datatypes.
 
+### Load the data
+
 Now we need to load in the data. And change the column names to the attributes abbreviation, since these are non-existent. Let's give all the columns a name. And let's take a quick look at the data.
 
 ```{r}
+# Read the file in ass a tibble
 data <- as_tibble(read.table("yeast.data", sep = ""))
 colnames(data) <- attr_names
 head(data)
 ```
 
-We can drop the first columns since it is not necessary.
+The yeast data set contains scores per cellular localization sites.
+
+### Clean the data
+
+We can drop the first columns since it is not necessary. Since the sequence names contribute nothing to create a prediction model.
 
 ```{r}
+# Drop the first column
 data <- data[, -1]
 head(data)
 ```
 
 The first column has been succesfully dropped from the data.
 
-We are going to look for any missing values.
+Are there any missing values? Let's take a quick look.
 
 ```{r}
+# Count all the NA values
 sum(is.na(data))
 ```
 
-There are not any missing values.
+There are not any missing values. So nothing needs to be changed for this.
 
-Now we need to take a clearer look at the data set using `str()`
+Now we need to take a clearer look at the data set using `str()`.
 
 ```{r}
 str(data)
@@ -115,11 +138,34 @@ str(data)
 As you can see, the last column, loc.site, consists of characters, but this one needs to be converted to factors for clarity and complexity.
 
 ```{r}
+# Transform the last column to a factor
 data$loc.site <- as.factor(data$loc.site)
 str(data$loc.site)
 ```
 
 As you can see the data type of the column loc.site has been succesfully changed to factors.
+
+There are alot of rows. Let's visualize the amount of each classification.
+
+```{r, fig.cap="A waffle chart of the categorical composition"}
+# A grid to fill in 28x53
+df <- expand.grid(y = 1:28, x = 1:53)
+# Sort the table
+categ_table <- sort(table(data$loc.site), decreasing = T)
+df$category <- factor(rep(names(categ_table), categ_table))  
+
+ggplot(df, aes(x = x, y = y, fill = category)) + 
+        geom_tile(color = "black", size = 0.5) +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
+        scale_fill_brewer(palette = "Set3") + 
+        labs(title="Waffle Chart", subtitle="'Class' of localization") + 
+        xlab(NULL) + ylab(NULL)
+```
+
+\newpage
+
+There are alot of CYT and NUC localization. This probably means that CYT has a greater variation in localisation than ERL.
 
 The ERL variable also should be changed. As you can see, it is now a num data type but I needs to be a bool/binary datatype. Let's take a closer look at th ERL column.
 
@@ -138,6 +184,7 @@ table(data[, "erl"])
 Before the data transformation there are 1470 counts of the value 0.5 and 14 of 1.
 
 ```{r}
+# Change every 0.5 value to a 0
 data$erl[data$erl == 0.5] <- 0
 table(data[,"erl"])
 ```
@@ -145,52 +192,181 @@ table(data[,"erl"])
 The data has been succesfully transformed. Now the datatype has to be changed to a bool.
 
 ```{r}
+# Change the datatype to a logical
 data$erl <- as.logical(data$erl)
 str(data$erl)
 ```
 
 Now every column has the right datatype.
 
+### Univariate Analysis
+
+Let's take a quick look at the data using `summary()`. We can drop column 5 and 9 for this. Column 5, ERL, is a logical datatype and column 9, loc.site, is a string datatype.
+
 ```{r}
+summary(data[, -c(5,9)])
+```
+
+As you can see all the datapoints are between 0 and 1. Se the data already has been transformed with a min-max normalization.
+
+Let's visualise this with ggplot. Using jitterpoints and a violing plot.
+
+```{r, fig.cap="Boxplot comparing basic statistic for all columns", fig.height=12, fig.width=6}
 p1 <- ggplot(data, mapping = aes(x = "", y = mcg)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
-
+  geom_jitter(width = 0.2, alpha = 0.25, height = 0, color = "red") + xlab(NULL)
 p2 <- ggplot(data, mapping = aes(x = "", y = gvh)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
-
-ggarrange(p1, p2, nrow = 1)
-```
-
-
-```{r}
+  geom_jitter(width = 0.2, alpha = 0.25, height = 0, color = "blue") + xlab(NULL)
 p3 <- ggplot(data, mapping = aes(x = "", y = alm)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.1, height = 0.1, alpha = 0.4, color = "red")
-
+  geom_jitter(width = 0.2,alpha = 0.25, height = 0, color = "purple") + xlab(NULL)
 p4 <- ggplot(data, mapping = aes(x = "", y = mit)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "blue")
-
-ggarrange(p3, p4, nrow = 1)
-``` 
-
-```{r}
+  geom_jitter(width = 0.2, alpha = 0.25, height = 0, color = "brown") + xlab(NULL)
 p5 <- ggplot(data, mapping = aes(x = "", y = pox)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "yellow")
-
+  geom_jitter(width = 0.2,alpha = 0.25, height = 0, color = "orange") + xlab(NULL)
 p6 <- ggplot(data, mapping = aes(x = "", y = vac)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.2, height = 0.1, alpha = 0.4, color = "green")
+  geom_jitter(width = 0.2, alpha = 0.25, height = 0, color = "green") + xlab(NULL)
+p7 <- ggplot(data, mapping = aes(x = "", y = nuc)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.2,alpha = 0.25, height = 0, color = "orange") + xlab(NULL)
 
-ggarrange(p5, p6, nrow = 1)
+plot <- ggarrange(p1, p2, p3, p4, p5, p6, p7, nrow = 4, ncol = 2)
+annotate_figure(plot, top = text_grob("Boxplots", face = "bold", size = 14))
 ```
+
+\newpage
+
+Mcg and gvh are normally distributed. Alm and mit are skewed but nothing crazy to worry about.
+Vac and nuc are really skewed however, not yet bad enough to worry about it. Pox is looks weird let's take a detailed look at pox.
 
 ```{r}
-p1 <- ggplot(data, aes(x=mcg)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-p2 <- ggplot(data, aes(x=gvh)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-p3 <- ggplot(data, aes(x=alm)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-p4 <- ggplot(data, aes(x=mit)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-p5 <- ggplot(data, aes(x=pox)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-p6 <- ggplot(data, aes(x=vac)) + geom_density(aes(color=loc.site)) + theme(legend.position = "none")
-ggarrange(p1, p2, p3, p4, p5, p6, ncol=3, nrow=2, common.legend=TRUE, legend="right")
+table(data[, "pox"])
 ```
 
+As you can see almost all the numbers are 0. This does not mean that we just discord this column. Maybe it is very significant if the number is not 0.
 
+```{r}
+# Subset the data where pox is larger than 0
+subset(data, pox > 0, select=loc.site)
+```
 
+If the number is non-zero then the probability is very high that the protein is localised in peroxisomal region.
+
+### Bivariate Analysis
+
+With a heatmap, you can easily see where there are correlations between variables. First let's create a correlation matrix
+
+```{r}
+# Create a cor matrix
+cor_matrix <- cor(data[, -c(5,9)])
+cor_matrix <- as_tibble(cor_matrix)
+# Add a column with the varibale names
+(cor_matrix <- cor_matrix %>% mutate(varnames = all_of(attr_names)[-c(1,6,10)]))
+```
+
+The calculated correlation matrix. This needs to be tranformed to a long matrix.
+
+```{r}
+# Create a long matrix
+(cor_matrix_long <- pivot_longer(data = cor_matrix, 
+                                 cols = all_of(attr_names)[-c(1,6,10)], 
+                                 names_to = "variable", values_to = "cor"))
+```
+
+The long calculated correlation matrix.
+
+```{r, fig.cap="A heatmap pairwise correlation of selected numeric variables"}
+
+ggplot(data = cor_matrix_long, aes(x=varnames, y=variable, fill=cor)) + 
+    geom_tile() + 
+    labs(x=NULL, y=NULL, title="Heatmap Correlation") + 
+    scale_fill_gradient(high = "purple", low = "white" )
+```
+
+\newpage
+
+As seen from the heatmap there is some correlation between mcg and gvh. Let's visualise this.
+
+```{r, warning=FALSE, fig.cap="Scatterplot with trendline with the dependent variables"}
+ggplot(data, aes(x=mcg, y=gvh, color=loc.site)) +
+        labs(x="MCG", y="GVH") +
+    geom_jitter(mapping = aes(color=loc.site), 
+                na.rm=T, width=0.2, height=0.2, 
+                alpha=0.5, shape=16, size=0.8) + 
+    ylim(0,1) + labs(title="Scatterplot and trendline") +
+    geom_smooth(formula = y ~ x, method = "loess")
+```
+
+Every variable goes with a slow upward trend except erl this one has a weird curve.
+
+### Class labels
+
+Now we need to look at how the data correlates with the classes. The heigth of the peak doesn’t matter much, shifted peaks do.
+
+```{r,fig.height=6, fig.width=8, fig.cap="Density plots shows class distinction"}
+p1 <- ggplot(data, aes(x=mcg)) + geom_density(aes(color=loc.site))
+p2 <- ggplot(data, aes(x=gvh)) + geom_density(aes(color=loc.site))
+p3 <- ggplot(data, aes(x=alm)) + geom_density(aes(color=loc.site))
+p4 <- ggplot(data, aes(x=mit)) + geom_density(aes(color=loc.site))
+p5 <- ggplot(data, aes(x=pox)) + geom_density(aes(color=loc.site))
+p6 <- ggplot(data, aes(x=vac)) + geom_density(aes(color=loc.site))
+p7 <- ggplot(data, aes(x=nuc)) + geom_density(aes(color=loc.site))
+plot <- ggarrange(p1, p2, p3, p4, p5, p6, p7, ncol=4, nrow=2, 
+          common.legend=TRUE, legend="right")
+annotate_figure(plot, top = text_grob("Density plots", face = "bold", size = 14))
+```
+
+At pox, vac and nuc, you don't see shifted peaks. At mcg and gvh you really see shifted peaks this shows a distribution of the different classes. There are small shifted peaks at alm en mit, this shows that there is difference but not so much.
+Let's look at mcg and gvh using ridge lines plot.
+
+```{r, warning=FALSE, message=FALSE, fig.cap="Ridge line plot between mcg and gvh"}
+p1 <- ggplot(data, aes(x=mcg, y=loc.site, fill = loc.site)) + 
+  geom_density_ridges2(rel_min_height = 0.005) + theme_minimal() + 
+  coord_cartesian(clip = "off")
+p2 <- ggplot(data, aes(x=gvh, y=loc.site, fill = loc.site)) + 
+  geom_density_ridges2(rel_min_height = 0.005) + theme_minimal() + 
+  coord_cartesian(clip = "off")
+plot <- ggarrange(p1, p2, common.legend = TRUE)
+annotate_figure(plot, top = text_grob("Ridge line plot", face = "bold", size = 14))
+```
+
+\newpage
+
+Now you can really see that the peaks are shifted.
+
+We need to test the data to see if there is significant difference between it. Using a 1-way ANOVA test.
+
+```{r}
+# Perform a one way anova test
+res.aov <- summary(aov(mcg ~ loc.site, data = data))
+res.aov[[1]]$`Pr(>F)`[1]
+```
+
+The P-value is < 0.05. So there is a significant difference.
+
+### Multivariate analysis
+
+One way to see if groups are clustered is to MDS plot the groups and calculated the distance matrix.
+
+```{r}
+# Create a matrix
+matrix <- with(data, rbind(mcg, gvh, alm, mit, pox, vac, nuc))
+(distmat <- dist(matrix))
+```
+
+Here is the distance matrix.
+
+```{r, fig.cap="Classical (Metric) Multidimensional Scaling", fig.width=4, fig.height=2.5}
+autoplot(cmdscale(distmat, eig = TRUE), shape = FALSE, label = TRUE, label.size = 4)
+```
+
+As seen from above mcg and gvh are the clustered group.
+
+A other plot to show is using PCA.
+
+```{r, fig.cap="PCA plot showing the groups"}
+df <- data[-c(5,9)]
+
+pca_res <- prcomp(df, scale. = TRUE)
+
+autoplot(pca_res, data = data, colour = 'loc.site', loadings = TRUE, loadings.label = TRUE)
+```
+
+As earlier shown mcg and gvh are grouped together.

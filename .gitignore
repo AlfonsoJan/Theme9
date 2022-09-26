@@ -21,6 +21,7 @@
 
 # Files created by R markdown
 *.html
+*.log
 
 # R Environment Variables
 .Renviron
