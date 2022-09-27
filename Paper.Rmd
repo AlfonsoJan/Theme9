@@ -1,0 +1,73 @@
+---
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(pander)
+library(ggplot2)
+library(gridExtra)
+```
+# Result
+
+To create a great dataset, changes need to be made to the downloaded dataset. The dataset has been gathered of 1484 yeast sequences from SWISS-PROT using the annotations from YPD. In this section, we are going to talk about the results we found from the dataset.
+
+## Codebook
+
+As it is a large dataset, it is wise to look at the codebook first. However, there is no codebook. Nevertheless, there is a file with more information on all the attributes. This is where the information is extracted to make your own codebook.
+
+Below a table with a description of all the attributes abbreviation, explanation and data types.
+
+\begin{center}
+Table 1: *The codebook*
+\end{center}
+
+```{r}
+attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl",
+                "pox", "vac","nuc", "loc.site" )
+data_types <- c("str", "float", "float", "float", "float", "float",
+                "logical", "float", "float", "factor")
+data_labels <- c("Accession number for the SWISS-PROT database",
+                 "McGeoch's method for signal sequence recognition",
+                 "von Heijne's method for signal sequence recognition",
+                 "Score of the ALOM membrane spanning region prediction program",
+                 "Score of discriminant analysis of the amino 
+                 acid content of the N-terminal region",
+                 "Presence of 'HDEL' substring",
+                 "Peroxisomal targeting signal in the C-terminus",
+                 "Score of discriminant analysis of the amino acid content 
+                 of vacuolar and extracellular proteins",
+                 "Score of discriminant analysis of nuclear 
+                 localization signals of nuclear and non-nuclear proteins",
+                 "The class is the localization site")
+codebook <- data.frame(Name=attr_names, 
+                       Fullname=data_labels, 
+                       Datatypes=data_types)
+kbl(codebook, booktabs = T, align = "c") %>%
+  kable_styling(full_width = T) %>%
+  column_spec(2, width = "10cm")
+```
+
+The last column is the sequence's localization site. There are 10 different alternatives for this. Here are the 10 in question: 
+5  
+\begin{center}
+Table 2: *Sequence localization sites*
+\end{center}
+
+```{r}
+abbrv <- c("CYT", "NUC", "MIT", "ME3", "ME2", "ME1", "EXC", "VAC", "POX", "ERL")
+loc.fullname <- c("cytosolic or cytoskeletal", "nuclear", "mitochondrial", "membrane protein, no N-terminal signal", "membrane protein, uncleaved signal", "membrane protein, cleaved signal", "extracellular", "vacuolar", "peroxisomal", "endoplasmic reticulum lumen")
+amount <- c(463, 429, 244, 163, 51, 44, 37, 30, 20, 5)
+
+pander(data.frame(Abbreviation=abbrv, 
+                  Fullname=loc.fullname, 
+                  Amount=amount))
+```
+
+There are alot of CYT and NUC localization. ERL localization is the least. There are only 5 of these in the dataset.
+
+## Transform data
+
+The data has to be transformed before it can be worked with.
