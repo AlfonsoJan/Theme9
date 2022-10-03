@@ -9,6 +9,10 @@ library(kableExtra)
 library(pander)
 library(ggplot2)
 library(gridExtra)
+library(ggpmisc)
+library(ggpubr)
+library(ggridges)
+library(ggfortify)
 ```
 # Result
 
@@ -20,15 +24,11 @@ As it is a large dataset, it is wise to look at the codebook first. However, the
 
 Below a table with a description of all the attributes abbreviation, explanation and data types.
 
-\begin{center}
-Table 1: *The codebook*
-\end{center}
-
 ```{r}
 attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl",
                 "pox", "vac","nuc", "loc.site" )
-data_types <- c("str", "float", "float", "float", "float", "float",
-                "logical", "float", "float", "factor")
+data_types <- c("str", "double", "double", "double", "double", "double",
+                "logical", "double", "double", "factor")
 data_labels <- c("Accession number for the SWISS-PROT database",
                  "McGeoch's method for signal sequence recognition",
                  "von Heijne's method for signal sequence recognition",
@@ -50,24 +50,234 @@ kbl(codebook, booktabs = T, align = "c") %>%
   column_spec(2, width = "10cm")
 ```
 
-The last column is the sequence's localization site. There are 10 different alternatives for this. Here are the 10 in question: 
-5  
 \begin{center}
-Table 2: *Sequence localization sites*
+\emph{Table 1:} The codebook.
 \end{center}
+
+The last column is the sequence's localization site. There are 10 different possibilities for this. Yeast protein were classified into 10 classes: **cytoplasmic:** cytoskeletal (CYT); nuc]ear (NUC); vacuolar (VAC); mitochondrial (MIT); isomal (POX); **extracellular:** including those localized against the cell wall (EXC); proteins localized to the lumen of the endoplasmic reticulum (ERL); membrane proteins with a cleaved signal (ME1); membrane proteins with an uncleared signal (ME2); and membrane proteins with no N-terminal sign (ME3), where ME1, ME2,and ME3 proteins may be localized to the plasma membrane, the endoplasmic reticulum membrane, or the membrane of a golgi body. 
+
+Here are the 10 in question: 
 
 ```{r}
 abbrv <- c("CYT", "NUC", "MIT", "ME3", "ME2", "ME1", "EXC", "VAC", "POX", "ERL")
 loc.fullname <- c("cytosolic or cytoskeletal", "nuclear", "mitochondrial", "membrane protein, no N-terminal signal", "membrane protein, uncleaved signal", "membrane protein, cleaved signal", "extracellular", "vacuolar", "peroxisomal", "endoplasmic reticulum lumen")
 amount <- c(463, 429, 244, 163, 51, 44, 37, 30, 20, 5)
-
 pander(data.frame(Abbreviation=abbrv, 
                   Fullname=loc.fullname, 
                   Amount=amount))
 ```
 
+\begin{center}
+\emph{Table 2:} Sequence localization sites.
+\end{center}
+
 There are alot of CYT and NUC localization. ERL localization is the least. There are only 5 of these in the dataset.
 
-## Transform data
+## Dataset
 
-The data has to be transformed before it can be worked with.
+8 features were used in classification: the presence or absence of an HDEL pattern as a signal for retention in the endoplasmic reticulum lumen (erl); the result of discriminant analysis on the amino acid content of vacuolar and extracellular proteins (vac); the result discriminant analysis on the amino acid composition of the 20-residue N-terminal region of mitochondrial and non-mitochondrial proteins (mit); the presence absence of nuclear localization consensus patterns combined with a term reflecting the frequency of basic residues (nuc); and some combination of the presence of a short sequence motif and the result of discriminant analysis of the amino acid composition of the protein sequence (pox).
+
+```{r}
+data <- as_tibble(read.table("yeast.data", sep = ""))
+colnames(data) <- attr_names
+pander(head(data))
+```
+
+\begin{center}
+\emph{Table 3:} First 6 rows of the dataset.
+\end{center}
+
+As seen from the table the loaded dataset. Has a char datatype for the first and last column. And every other column has a double as datatype.
+
+There are `r nrow(data)` rows and `r ncol(data)` columns.
+
+\newpage
+
+```{r, fig.cap="A waffle chart of the categorical composition", fig.width=6, fig.height=3}
+df <- expand.grid(y = 1:28, x = 1:53)
+categ_table <- sort(table(data$loc.site), decreasing = T)
+df$category <- factor(rep(names(categ_table), categ_table))
+ggplot(df, aes(x = x, y = y, fill = category)) +
+geom_tile(color = "black", size = 0.5) +
+scale_x_continuous(expand = c(0, 0)) +
+scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
+scale_fill_brewer(palette = "Set3") +
+labs(title="Waffle Chart", subtitle="'Class' of localization") +
+xlab(NULL) + ylab(NULL)
+```
+
+There are alot of CYT and NUC localization. And there are only `r nrow(subset(data, loc.site=="ERL", loc.site))` of ERL.
+
+## Clean the data
+
+To ensure the quality of the data. The data had to be transformed before it could be worked with.
+
+The first column has been dropped since it is not necessary. Since the sequence names contribute nothing to create a prediction model.
+
+```{r}
+data <- data[, -1]
+pander(head(data))
+```
+
+\begin{center}
+\emph{Table 4:} First 6 rows of the dataset with the first column dropped.
+\end{center}
+
+As stated on the website there are `r sum(is.na(data))` missing values.
+
+```{r}
+data$loc.site <- as.factor(data$loc.site)
+str(data$loc.site)
+```
+
+The data type of the column loc.site has been succesfully changed to factors.
+
+The ERL column has changed. From an double to a logical datatype. As seen in figure 2 below, only numbers 1 and 0.5 appear, but for a logical datatype you need 1 and 0. All 0.5 have been changed to 0.
+
+\newpage
+
+```{r, warning=FALSE, message=FALSE, fig.cap="ERL column data distrubution", fig.width=10, fig.height=4}
+my_list <- as.data.frame(table(data[,"erl"]))
+names(my_list) <- c("Values", "Freq")
+ggplot(data, mapping = aes(x = "", y = erl)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.5, alpha = 0.25, height = 0.005, color = "red") + xlab(NULL) + annotate(geom = "table", x = 0.5, y = 0.75, label = list(my_list)) + ylim(0, 1) + labs(title="ERL Variable", subtitle="Data distrubution")
+```
+
+```{r}
+data$erl[data$erl == 0.5] <- 0
+data$erl <- as.logical(data$erl)
+m <- sapply(data, typeof)
+m[m=="integer"] <- "factor"
+pander(m)
+```
+
+\begin{center}
+\emph{Table 5:} Each column name and the typeof the datatype.
+\end{center}
+
+Each column has been changed so that it has the right data type.
+
+## Exploratory data analysis
+
+```{r}
+table <- summary(data[, -c(5,9)])
+panderOptions('table.continues', '')
+pander(table)
+```
+
+\begin{center}
+\emph{Table 6:} Summary of the dataset.
+\end{center}
+
+As observed in table 6 the data has already been transformed with a min-max normalisation. All the datapoints are between 0 and 1.Mcg and gvh are normally distributed. Alm and mit are skewed but nothing to crazy to be worried about. Vac and nuc are really skewed however, not yet bad enough to worry about it. Pox is very oddly distributed.
+
+\newpage
+
+```{r, fig.cap="Closer look at the pox variable", fig.width=10, fig.height=4}
+my_list <- as.data.frame(table(data[,"pox"]))
+names(my_list) <- c("Values", "Freq")
+p1 <- ggplot(data, mapping = aes(x = "", y = pox)) + geom_violin(alpha=0.2) + 
+  geom_jitter(width = 0.5, alpha = 0.25, height = 0.005, color = "red") + xlab(NULL)
+p1 + annotate(geom = "table", x = 0.5, y = 0.75, label = list(my_list)) + labs(title="Pox Variable", subtitle="Data distrubution")
+```
+
+Almost all the datapoint are 0. This could cause problems later on. Since more than 95% of all the datapoints are 0.
+
+```{r, fig.cap="Frequency plot of pox variablee", fig.height=3}
+d <- as.data.frame(table(subset(data, pox > 0, select=loc.site)))
+ggplot(d, aes(Var1, Freq)) +
+  geom_linerange(
+    aes(x = Var1, ymin = 0, ymax = Freq), 
+    color = "lightgray", size = 1.5
+    )+
+  geom_point(aes(color = Var1), size = 2) + labs(title="Frequency plot of pox variable", x="localization site", y = "Count")
+```
+
+If the pox value is not 0 then the classification is Pox, Mit or Cyt. This means that Pox has a high probability when the Pox value is not 0.
+
+With a heatmap, you can easily see where there are correlations between variables.
+
+```{r}
+cor_matrix <- cor(data[, -c(5,9)])
+cor_matrix <- as_tibble(cor_matrix)
+cor_matrix <- cor_matrix %>% mutate(varnames = all_of(attr_names)[-c(1,6,10)])
+kbl(cor_matrix, booktabs = T, align = "c") %>%
+  kable_styling(full_width = T)
+```
+
+\begin{center}
+\emph{Table 7:} The calculated correlation matrix.
+\end{center}
+
+This has been tranformed to a long matrix.
+
+```{r}
+cor_matrix_long <- pivot_longer(data = cor_matrix, 
+                                 cols = all_of(attr_names)[-c(1,6,10)], 
+                                 names_to = "variable", values_to = "cor")
+pander(head(cor_matrix_long))
+```
+
+\begin{center}
+\emph{Table 8:} The long calculated correlation matrix.
+\end{center}
+
+```{r, fig.cap="A heatmap pairwise correlation of selected numeric variables", fig.height=4}
+
+ggplot(data = cor_matrix_long, aes(x=varnames, y=variable, fill=cor)) + 
+    geom_tile() + 
+    labs(x=NULL, y=NULL, title="Heatmap Correlation") + 
+    scale_fill_gradient(high = "purple", low = "white" )
+```
+
+As seen from the heatmap there is some correlation between mcg and gvh. While on the contrary Pox barely has any correlation with a other variable.
+
+There needs to be data correlation with the classes. The heigth of the peak doesn’t matter much, shifted peaks do.
+
+```{r, warning=FALSE, message=FALSE, fig.cap="Ridge line plot between mcg and gvh"}
+p1 <- ggplot(data, aes(x=mcg, y=loc.site, fill = loc.site)) + 
+  geom_density_ridges2(rel_min_height = 0.005) + theme_minimal() + 
+  coord_cartesian(clip = "off")
+p2 <- ggplot(data, aes(x=gvh, y=loc.site, fill = loc.site)) + 
+  geom_density_ridges2(rel_min_height = 0.005) + theme_minimal() + 
+  coord_cartesian(clip = "off")
+plot <- ggarrange(p1, p2, common.legend = TRUE)
+annotate_figure(plot, top = text_grob("Ridge line plot", face = "bold", size = 14))
+```
+
+There are shifted peaks. this shows a distribution of the different classes.
+
+A 1-way ANOVA test was carried out on the data.
+
+```{r}
+# Perform a one way anova test
+res.aov <- summary(aov(mcg ~ loc.site, data = data))
+p.value <- res.aov[[1]]$`Pr(>F)`[1]
+```
+
+The P-value: `r p.value` is < 0.05. So there is a significant difference.
+
+\newpage
+
+```{r, fig.cap="Classical (Metric) Multidimensional Scaling", fig.width=4, fig.height=2.5}
+matrix <- with(data, rbind(mcg, gvh, alm, mit, pox, vac, nuc))
+distmat <- dist(matrix)
+autoplot(cmdscale(distmat, eig = TRUE), shape = FALSE, label = TRUE, label.size = 4)
+```
+
+As found in the heatmap Mcg and Gvh are clustered. Vac and Alm are somewhat clustered they are close to eachother. Nuc, Mit and Pox are all on their own.
+
+```{r, fig.cap="PCA plot", fig.width=6, fig.height=3}
+df <- data[-c(5,9)]
+
+pca_res <- prcomp(df, scale. = TRUE)
+
+autoplot(pca_res, data = data, colour = 'loc.site', loadings = TRUE, loadings.label = TRUE)
+```
+
+Mcg and Gvh are also clustered in this PCA plot. As in contrast with the MDS plot Vac and Alm are not clustered at all. Pox is in the centre.
+
+\newpage
+
+# Discussion
+
+# Conclusion
