@@ -106,7 +106,7 @@ labs(title="Waffle Chart", subtitle="'Class' of localization") +
 xlab(NULL) + ylab(NULL)
 ```
 
-There are alot of CYT and NUC localization. And there are only `r nrow(subset(data, loc.site=="ERL", loc.site))` of ERL.
+Figure 1 shows the amount of each clasification. There are alot of CYT and NUC localization. And there are only `r nrow(subset(data, loc.site=="ERL", loc.site))` of ERL.
 
 ## Clean the data
 
@@ -278,6 +278,16 @@ Mcg and Gvh are also clustered in this PCA plot. As in contrast with the MDS plo
 
 \newpage
 
-# Discussion
+# Discussion & Conclusion
 
-# Conclusion
+Our research question is: Can machine learning predict protein localisation based on their aminoacid sequences. And to answer this question properly, a clean dataset is needed to create a model. The results will show what is wrong with the data and the correlations between the different classifications. The results are not completely trustworthy because there is too little of them. Namely, there are only 1484 oberservations. This is too few for prediction with 10 different classifications.
+
+## Discussion
+
+Nor was the Erl column considered. This indicates the presence of "HDEL" substring. If this had been looked at, more correlations would have emerged. Which could later become significant. There was also something wrong with the ERL column. As stated on the site, it is a binary/logical type. Either 0 or 1. It is present or it is not present. However, there were only values of 0.5 and 1. All values of 0.5 were changed to 0.
+
+In the case of the Pox column, something strange was noticed. Out of 1484 datapoints, 15 are not zero, 11 of them have as classifications Pox. This means that if the value is not zero that the classification is highly probable pox.
+
+## Conclusion
+
+The aim was to create a clean dataset, to be used for our machine learning project. There is a clean dataset with no missing values and the correct data types. The data gives a clear overview of a protein classification and their attributes. However, not much was available. With only 1484 observations, this is just too little. And there is a very big difference between the number of observations per classifications. For ERL there are only 5 observations and for CYT there are 463. There is too big a difference between these. By improving this dataset over time, the prediction can be perfected even more. These constant improvements are important to find.
