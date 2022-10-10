@@ -369,3 +369,52 @@ autoplot(pca_res, data = data, colour = 'loc.site', loadings = TRUE, loadings.la
 ```
 
 As earlier shown mcg and gvh are grouped together.
+
+\newpage
+
+# MIL algorithms
+
+First we need to investigate which standard ML algorithms is the best to use for this dataset using Weka.
+
+Weka accepts .arff files. You can convert a .csv to a .arff file in Weka. So we need to export the clean dataset to a .csv file.
+
+```{r, eval=FALSE}
+write.table(data,"data.csv", quote = FALSE, sep = ",", row.names=FALSE)
+```
+
+Open the .csv in Weka under tools -> ArffViewer. And saved the file as .arff. The first 15 lines of the .arff file needs to look like this.
+
+```{r}
+cat(readLines("data.arff", n = 15), sep = "\n")
+```
+
+*Criteria for MIL algorithms*
+
+An accurate algorithm is needed that accurately predicts the dataset. It needs a high percentage of correct classifications on the dataset. An algorithm that is fast. What if there is a dataset of 1 million observations. And it should also not contain too many false negatives and false positives.
+
+Research has been done on which algorithm is the best. From every representatives of all classifier categories. And ZeroR and OneR for a baseline performance. Eg: Decision Trees (C4.5, J48, RandomForest), Nearest Neighbor (IBk), SVM (SMO), NaiveBayes (Naïve Bayes) and Linear Logistic (SimpleLogistic). And carried out classifications 10-fold cross validation.
+
+```{r}
+wekaResult <- read.table("ResultWeka.txt", header = TRUE)
+colnames(wekaResult) <- c("Classifier", "TP Rate Avg.", "FP Rate Avg.", 
+                          "Precision", "VAC Precision")
+pander(wekaResult)
+```
+
+Several algorithms cannot make a prediction for the classification VAC (0.000) and for some they get an error (?). 1 algorithm IBk has a very low prediction for VAC. All the algorithm above in table NUMBER except for ZeroR, OneR, SMO and SimpleLogistic were used in the Weka Experimenter to compare.
+
+![Ranking of chosen algorithms]("images/RankingAlgo.png")
+
+This shows the ranking of the algorithms by the number of times a given algorithm beat the other algorithms. And RandomForest beat all 4 algorithms.
+
+![Ranking of chosen algorithms by SD]("images/WekaSD.png")
+
+RandomForest has a 'v' next to their result. This means that the difference in the accuracy for these algorithms compared to all the other algorithms is significant.
+
+After testing multiple algorithms in Weka, the algorithm RandomForest was chosen. It has the highest average precision of 0.611. And this was one of the few algorithms where the precision for VAC was not a '?'.
+
+But for the ratings, no algorithm could make a prediction except 1 for VAC, however, it was also very low. So we looked at whether there is siginificant difference if we remove this classifier.
+
+![Removed class difference]("images/WekaDataEdit.png")
+
+And by the looks of it, there is no significant difference. So VAC is not removed from the dataset.

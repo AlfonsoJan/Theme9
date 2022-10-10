@@ -1,0 +1,10 @@
+Classifier TP_Rate_Avg FP_Rate_Avg Precision Vac_Precision
+ZeroR 0.312 0.312 ? ?
+OneR 0.394 0.228 ? ?
+C4.5 0.537 0.153 0.531 0.000
+J48 0.559 0.144 0.550 0.000
+RandomForest 0.611 0.132 0.603 0.000
+IBk 0.523 0.149 0.524 0.077
+SMO 0.570 0.159 ? ?
+NaiveBayes 0.576 0.137 0.584 0.000
+SimpleLogistic 0.590 0.143 ? ?
