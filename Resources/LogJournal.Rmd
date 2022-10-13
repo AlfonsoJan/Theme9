@@ -418,3 +418,48 @@ But for the ratings, no algorithm could make a prediction except 1 for VAC, howe
 ![Removed class difference]("images/WekaDataEdit.png")
 
 And by the looks of it, there is no significant difference. So VAC is not removed from the dataset.
+
+RandomForest has seven attributes. Below is a table with each attribute and its meaning.
+
+```{r, echo=FALSE}
+attr <- c("P", "I", "num-slots", "K", "M", "V", "S")
+attr.descr <- c("Size of each bag, as a percentage of the training set size.", 
+                "Number of iterations.", "Number of execution slots.", 
+                "Number of attributes to randomly investigate.", 
+                "Number of attributes to randomly investigate.", 
+                "Set minimum numeric class variance proportion.", 
+                "Seed for random number generator.")
+pander(data.frame(Attribute=attr, Description=attr.descr))
+```
+
+Weka will find the optimal parameters for a classifier. With CVParameterSelection in Weka were the best parameters found.
+
+```{r, echo=FALSE}
+old.val <- c(100, 100, 1, 0, 1, 0.001, 1)
+new.val <- c(50, 1000, 0, 1, 1, 0.001, 1)
+pander(data.frame(Attribute=attr, Old.Values=old.val, New.Values=new.val))
+```
+
+This table shows the parameters with their default settings and their new. P, I, num-slots and K were different than the default settings. The build will take more time because it does 10 times more I(terations). 
+
+![Iterations ranked]("images/WekaIterRank.png")
+
+Number 1 in the figure above is with 1000 I(terations) and number 2 is 100 I(terations). And there is not a significant difference. So for performance, the value for I will be 100.
+
+Weka Meta learners were used to get a better idea of an optimal classifier.
+
+```{r, echo=FALSE}
+tbl <- read.table("MetaResults.txt", header = TRUE)
+colnames(tbl) <- c("Classifier", "TP Rate", "FP Rate", "Precision", "ROC Area", " ")
+pander(tbl)
+```
+
+As it can be seen in this table, RandomForest with tweaked parameters is the best. This one has no ? at VAC and precision.
+
+Since there are 10 classifications, ROC curve have been caught from one classifications.
+
+\newpage
+
+![ROC Curve (NUC)]("images/ROCCurve.png")
+
+This is a nice curve with a relative low ROC Curve. This means that this classification can correspond well to a particular decision threshold.
