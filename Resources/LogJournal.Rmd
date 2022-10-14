@@ -394,14 +394,52 @@ An accurate algorithm is needed that accurately predicts the dataset. It needs a
 
 Research has been done on which algorithm is the best. From every representatives of all classifier categories. And ZeroR and OneR for a baseline performance. Eg: Decision Trees (C4.5, J48, RandomForest), Nearest Neighbor (IBk), SVM (SMO), NaiveBayes (Naïve Bayes) and Linear Logistic (SimpleLogistic). And carried out classifications 10-fold cross validation.
 
+The experimenter can save the results in a csv file.
+
 ```{r}
-wekaResult <- read.table("ResultWeka.txt", header = TRUE)
-colnames(wekaResult) <- c("Classifier", "TP Rate Avg.", "FP Rate Avg.", 
-                          "Precision", "VAC Precision")
-pander(wekaResult)
+weka.result <- read.table("Result.csv", header = TRUE, sep = ",")
+# Remove weka.classifiers.* from classifier name
+for (i in 1:length(weka.result$Key_Scheme)) {
+  name <- weka.result$Key_Scheme[i]
+  tweaked.name <- strsplit(name, split = ".", fixed = TRUE)[[1]][4]
+  weka.result$Key_Scheme[i] <- tweaked.name
+}
 ```
 
-Several algorithms cannot make a prediction for the classification VAC (0.000) and for some they get an error (?). 1 algorithm IBk has a very low prediction for VAC. All the algorithm above in table NUMBER except for ZeroR, OneR, SMO and SimpleLogistic were used in the Weka Experimenter to compare.
+Now the results of the csv can been plotted with ease of use. Like the ROC and precision.
+
+```{r, fig.cap="Area under the curve for different classifiers"}
+# Create a dataframe of the mean of the ROC of every classifier
+res <- aggregate(Area_under_ROC ~ Key_Scheme, data = weka.result, mean)
+
+ggplot(data=res, aes(x=Key_Scheme, y=Area_under_ROC, fill=Key_Scheme)) + 
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) + 
+  labs(x="Classifier", y="Area under curve (ROC)", 
+       title="Area under the curve for different classifiers") + 
+  geom_hline(aes(yintercept=min(Area_under_ROC)), linetype = 'dashed') + 
+  geom_hline(aes(yintercept=max(Area_under_ROC)), linetype = 'dashed') + 
+  geom_text(aes(label=round(Area_under_ROC, digits=2)), vjust=-0.3, size=3.5)
+```
+
+RandomForest has the highest area under the curve, while OneR has the lowest with 0.49 and ZeroR with a close second last with 0.5.
+
+```{r, fig.cap="Average precisionfor different classifiers"}
+res <- aggregate(IR_precision ~ Key_Scheme, data = weka.result, mean)
+
+ggplot(data=res, aes(x=Key_Scheme, y=IR_precision, fill=Key_Scheme)) + 
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) + 
+  labs(x="Classifier", y="Precision", 
+       title="Average precisionfor different classifiers") + 
+  geom_hline(aes(yintercept=min(IR_precision)), linetype = 'dashed') + 
+  geom_hline(aes(yintercept=max(IR_precision)), linetype = 'dashed') + 
+  geom_text(aes(label=round(IR_precision, digits=2)), vjust=-0.3, size=3.5)
+```
+
+RandomForest also has the highest average precision with 0.66. And OneR has the lowest with 0.04. ZeroR is not in this plots because it only consist of NaN.
+
+Several algorithms cannot make a prediction for the classification VAC (0.000) and for some they get an error (?). 1 algorithm IBk has a very low prediction for VAC. All the algorithm above in the figure except for ZeroR, OneR, SMO and SimpleLogistic were used in the Weka Experimenter to compare.
 
 ![Ranking of chosen algorithms]("images/RankingAlgo.png")
 
@@ -455,11 +493,3 @@ pander(tbl)
 ```
 
 As it can be seen in this table, RandomForest with tweaked parameters is the best. This one has no ? at VAC and precision.
-
-Since there are 10 classifications, ROC curve have been caught from one classifications.
-
-\newpage
-
-![ROC Curve (NUC)]("images/ROCCurve.png")
-
-This is a nice curve with a relative low ROC Curve. This means that this classification can correspond well to a particular decision threshold.
