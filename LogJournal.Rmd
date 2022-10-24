@@ -100,7 +100,7 @@ Now we need to load in the data. And change the column names to the attributes a
 
 ```{r}
 # Read the file in ass a tibble
-data <- as_tibble(read.table("yeast.data", sep = ""))
+data <- as_tibble(read.table("Resources/yeast.data", sep = ""))
 colnames(data) <- attr_names
 head(data)
 ```
@@ -391,7 +391,7 @@ write.table(data,"data.csv", quote = FALSE, sep = ",", row.names=FALSE)
 Open the .csv in Weka under tools -> ArffViewer. And saved the file as .arff. The first 15 lines of the .arff file needs to look like this.
 
 ```{r}
-cat(readLines("data.arff", n = 15), sep = "\n")
+cat(readLines("Resources/data.arff", n = 15), sep = "\n")
 ```
 
 **Criteria for MIL algorithms**
@@ -403,7 +403,7 @@ Research has been done on which algorithm is the best. From every representative
 The experimenter can save the results in a csv file.
 
 ```{r}
-weka.result <- read.table("Result.csv", header = TRUE, sep = ",")
+weka.result <- read.table("Resources/Result.csv", header = TRUE, sep = ",")
 # Remove weka.classifiers.* from classifier name
 for (i in 1:length(weka.result$Key_Scheme)) {
   name <- weka.result$Key_Scheme[i]
@@ -449,11 +449,11 @@ RandomForest also has the highest average precision with 0.66. And OneR has the 
 
 Several algorithms cannot make a prediction for the classification VAC (0.000) and for some they get an error (?). 1 algorithm IBk has a very low prediction for VAC. All the algorithm above in the figure except for ZeroR, OneR, SMO and SimpleLogistic were used in the Weka Experimenter to compare.
 
-![Ranking of chosen algorithms]("images/RankingAlgo.png")
+![Ranking of chosen algorithms]("Resources/images/RankingAlgo.png")
 
 This shows the ranking of the algorithms by the number of times a given algorithm beat the other algorithms. And RandomForest beat all 4 algorithms.
 
-![Ranking of chosen algorithms by SD]("images/WekaSD.png")
+![Ranking of chosen algorithms by SD]("Resources/images/WekaSD.png")
 
 RandomForest has a 'v' next to their result. This means that the difference in the accuracy for these algorithms compared to all the other algorithms is significant.
 
@@ -461,7 +461,7 @@ After testing multiple algorithms in Weka, the algorithm RandomForest was chosen
 
 But for the ratings, no algorithm could make a prediction except 1 for VAC, however, it was also very low. So we looked at whether there is siginificant difference if we remove this classifier.
 
-![Removed class difference]("images/WekaDataEdit.png")
+![Removed class difference]("Resources/images/WekaDataEdit.png")
 
 And by the looks of it, there is no significant difference. So VAC is not removed from the dataset.
 
@@ -488,14 +488,14 @@ pander(data.frame(Attribute=attr, Old.Values=old.val, New.Values=new.val))
 
 This table shows the parameters with their default settings and their new. P, I, num-slots and K were different than the default settings. The build will take more time because it does 10 times more I(terations). 
 
-![Iterations ranked]("images/WekaIterRank.png")
+![Iterations ranked]("Resources/images/WekaIterRank.png")
 
 Number 1 in the figure above is with 1000 I(terations) and number 2 is 100 I(terations). And there is not a significant difference. So for performance, the value for I will be 100.
 
 Weka Meta learners were used to get a better idea of an optimal classifier.
 
 ```{r, echo=FALSE}
-tbl <- read.table("MetaResults.txt", header = TRUE)
+tbl <- read.table("Resources/MetaResults.txt", header = TRUE)
 colnames(tbl) <- c("Classifier", "TP Rate", "FP Rate", "Precision", "ROC Area", " ")
 pander(tbl)
 ```
