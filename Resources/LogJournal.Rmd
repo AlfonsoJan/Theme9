@@ -252,21 +252,25 @@ If the number is non-zero then the probability is very high that the protein is 
 
 With a heatmap, you can easily see where there are correlations between variables. First let's create a correlation matrix
 
-```{r}
+```{r, warning=FALSE}
 # Create a cor matrix
 cor_matrix <- cor(data[, -c(5,9)])
 cor_matrix <- as_tibble(cor_matrix)
 # Add a column with the varibale names
-(cor_matrix <- cor_matrix %>% mutate(varnames = all_of(attr_names)[-c(1,6,10)]))
+cor_matrix <- cor_matrix %>% mutate(varnames = all_of(attr_names)[-c(1,6,10)])
+kbl(cor_matrix, booktabs = T, align = "c") %>%
+  kable_styling(full_width = T)
 ```
 
 The calculated correlation matrix. This needs to be tranformed to a long matrix.
 
-```{r}
+```{r, warning=FALSE}
 # Create a long matrix
-(cor_matrix_long <- pivot_longer(data = cor_matrix, 
-                                 cols = all_of(attr_names)[-c(1,6,10)], 
-                                 names_to = "variable", values_to = "cor"))
+cols <- all_of(attr_names)[-c(1,6,10)]
+cor_matrix_long <- pivot_longer(data = cor_matrix, 
+                                 cols = cols,
+                                 names_to = "variable", values_to = "cor")
+pander(head(cor_matrix_long))
 ```
 
 The long calculated correlation matrix.
@@ -360,6 +364,8 @@ As seen from above mcg and gvh are the clustered group.
 
 A other plot to show is using PCA.
 
+\newpage
+
 ```{r, fig.cap="PCA plot showing the groups"}
 df <- data[-c(5,9)]
 
@@ -388,7 +394,7 @@ Open the .csv in Weka under tools -> ArffViewer. And saved the file as .arff. Th
 cat(readLines("data.arff", n = 15), sep = "\n")
 ```
 
-*Criteria for MIL algorithms*
+**Criteria for MIL algorithms**
 
 An accurate algorithm is needed that accurately predicts the dataset. It needs a high percentage of correct classifications on the dataset. An algorithm that is fast. What if there is a dataset of 1 million observations. And it should also not contain too many false negatives and false positives.
 
@@ -414,27 +420,29 @@ res <- aggregate(Area_under_ROC ~ Key_Scheme, data = weka.result, mean)
 
 ggplot(data=res, aes(x=Key_Scheme, y=Area_under_ROC, fill=Key_Scheme)) + 
   geom_bar(stat="identity") + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
   labs(x="Classifier", y="Area under curve (ROC)", 
        title="Area under the curve for different classifiers") + 
   geom_hline(aes(yintercept=min(Area_under_ROC)), linetype = 'dashed') + 
   geom_hline(aes(yintercept=max(Area_under_ROC)), linetype = 'dashed') + 
-  geom_text(aes(label=round(Area_under_ROC, digits=2)), vjust=-0.3, size=3.5)
+  geom_text(aes(label=round(Area_under_ROC, digits=2)), vjust=1.5, size=3.5)
 ```
 
 RandomForest has the highest area under the curve, while OneR has the lowest with 0.49 and ZeroR with a close second last with 0.5.
+
+\newpage
 
 ```{r, fig.cap="Average precisionfor different classifiers"}
 res <- aggregate(IR_precision ~ Key_Scheme, data = weka.result, mean)
 
 ggplot(data=res, aes(x=Key_Scheme, y=IR_precision, fill=Key_Scheme)) + 
   geom_bar(stat="identity") + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
   labs(x="Classifier", y="Precision", 
-       title="Average precisionfor different classifiers") + 
+       title="Average precision for different classifiers") + 
   geom_hline(aes(yintercept=min(IR_precision)), linetype = 'dashed') + 
   geom_hline(aes(yintercept=max(IR_precision)), linetype = 'dashed') + 
-  geom_text(aes(label=round(IR_precision, digits=2)), vjust=-0.3, size=3.5)
+  geom_text(aes(label=round(IR_precision, digits=2)), vjust=1.5, size=3.5)
 ```
 
 RandomForest also has the highest average precision with 0.66. And OneR has the lowest with 0.04. ZeroR is not in this plots because it only consist of NaN.
@@ -492,4 +500,4 @@ colnames(tbl) <- c("Classifier", "TP Rate", "FP Rate", "Precision", "ROC Area", 
 pander(tbl)
 ```
 
-As it can be seen in this table, RandomForest with tweaked parameters is the best. This one has no ? at VAC and precision.
+As it can be seen in this table, RandomForest with tweaked parameters is the best. This one has no '?' at VAC and precision.
