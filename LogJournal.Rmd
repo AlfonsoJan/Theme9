@@ -1,13 +1,58 @@
 ---
-title: 'Log Journal Project Theme 9'
-author: 'J.A. Busker (352905 BFV3)'
 output:
-  pdf_document: 
+  pdf_document:
     pandoc_args: --highlight=breezedark
 ---
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA)
+```
+
+
+<!-- Copyright (c) 2022 John Busker. -->
+<!-- Licensed under GPLv3. See gpl.md -->
+
+
+# Machine Learning Research log
+
+## Can machine learning predict protein localization based on their aminoacid sequences
+
+\vspace*{\fill}
+\begin{flushright}
+John Busker\\
+352905\\
+Bio-Informatics\\
+Dave Langers, and Bart Barnard\\
+28-10-2022
+\end{flushright}
+
+\newpage
+
+# Table of Contents
+
+1. [R Environment](#r-environment) \dotfill 3  
+
+2. [EDA](#eda) \dotfill 4  
+  2.1 [About The Data](#about-the-data) \dotfill 4  
+  2.2 [Codebook](#codebook) \dotfill 5  
+  2.3 [Loading The Data](#loading-the-data) \dotfill 6  
+  2.4 [Cleaning The Data](#cleaning-the-data) \dotfill 6  
+  2.5 [Data Transformation](#data-transformation) \dotfill 9  
+  2.6 [Univariate Analysis](#univariate-analysis) \dotfill 9  
+  2.7 [Bivariate Analysis](#bivariate-analysis) \dotfill 12   
+  2.8 [Class Labels](#class-labels) \dotfill 15  
+  2.9 [Multivariate Analysis](#multivariate-analysis) \dotfill 18  
+  
+3. [MIL Algorithms](#mil-algorithms) \dotfill 20  
+  3.1 [Criteria For MIL Algorithms](#criteria-for-mil-algorithms) \dotfill 20  
+
+\newpage
+
+# R Environment
+
+Multiple libraries have been uses for data analysis and further processes. The libraries used are:
+
+```{r setup, message=FALSE}
 library(tidyr)
 library(kableExtra)
 library(ggplot2)
@@ -23,14 +68,13 @@ library(ggridges)
 library(cluster)
 ```
 
-<!-- Copyright (c) 2022 John Busker. -->
-<!-- Licensed under GPLv3. See gpl.md -->
+\newpage 
 
----
+# EDA
 
-## EDA of yeast data: Protein Localization
+## About The Data
 
-The data has been retrived from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast) The dataset has been gathered of 1484 yeast sequences from SWISS-PROT using the annotations from YPD.
+The data has been retrieved from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast) The dataset consists of 1484 yeast sequences from SWISS-PROT using the annotations from YPD. In this section, we are going to talk about the results we found from the dataset. Eight features were used in classification: the presence or absence of an HDEL pattern as a signal for retention in the endoplasmic reticulum lumen (erl); The results of discriminant analysis on the amino acid content of vacuolar and extracellular proteins (vac); the result of discriminant analysis on the amino acid composition of the 20-residue N-terminal region of mitochondrial and non-mitochondrial proteins (mit); the presence or absence of nuclear localization consensus patterns combined with a term reflecting the frequency of basic residues (nuc); and some combination of the presence of a short sequence motif and the result of discriminant analysis of the amino acid composition of the protein sequence (pox).
 
 Attributes information:  
 
@@ -58,9 +102,11 @@ POX (peroxisomal)                                   20
 ERL (endoplasmic reticulum lumen)                    5  
 --- ---------------------------------------------- --
 
-### Codebook
+Yeast proteins were classified into ten classes: **cytoplasmic:** cytoskeletal (CYT); nuc]ear (NUC); vacuolar (VAC); mitochondrial (MIT); isomal (POX); **extracellular:** including those localized against the cell wall (EXC); proteins localized to the lumen of the endoplasmic reticulum (ERL); membrane proteins with a cleaved signal (ME1); membrane proteins with an uncleared signal (ME2); and membrane proteins with no N-terminal sign (ME3), where ME1, ME2,and ME3 proteins may be localized to the plasma membrane, the endoplasmic reticulum membrane, or the membrane of a golgi body.
 
-Since there is not a codebook. I created my own codebook.
+## Codebook
+
+Since there is not a codebook. A own codebook has been created
 
 ```{r}
 # All the attributes name
@@ -94,7 +140,7 @@ pander(codebook)
 
 Here is the codebook. With the attributes abbreviation, explanation and data types. As you can see there are many float datatypes.
 
-### Load the data
+## Loading The Data
 
 Now we need to load in the data. And change the column names to the attributes abbreviation, since these are non-existent. Let's give all the columns a name. And let's take a quick look at the data.
 
@@ -105,9 +151,9 @@ colnames(data) <- attr_names
 head(data)
 ```
 
-The yeast data set contains scores per cellular localization sites.
+The yeast data set contains scores per cellular localization sites. The last column is the sequence's localization site. There are ten different possibilities for this. 
 
-### Clean the data
+## Cleaning The Data
 
 We can drop the first columns since it is not necessary. Since the sequence names contribute nothing to create a prediction model.
 
@@ -166,6 +212,8 @@ ggplot(df, aes(x = x, y = y, fill = category)) +
 
 There are alot of CYT and NUC localization. This probably means that CYT has a greater variation in localisation than ERL.
 
+## Data Transformation
+
 The ERL variable also should be changed. As you can see, it is now a num data type but I needs to be a bool/binary datatype. Let's take a closer look at th ERL column.
 
 ```{r}
@@ -198,7 +246,7 @@ str(data$erl)
 
 Now every column has the right datatype.
 
-### Univariate Analysis
+## Univariate Analysis
 
 Let's take a quick look at the data using `summary()`. We can drop column 5 and 9 for this. Column 5, ERL, is a logical datatype and column 9, loc.site, is a string datatype.
 
@@ -248,7 +296,7 @@ subset(data, pox > 0, select=loc.site)
 
 If the number is non-zero then the probability is very high that the protein is localised in peroxisomal region.
 
-### Bivariate Analysis
+## Bivariate Analysis
 
 With a heatmap, you can easily see where there are correlations between variables. First let's create a correlation matrix
 
@@ -273,7 +321,7 @@ cor_matrix_long <- pivot_longer(data = cor_matrix,
 pander(head(cor_matrix_long))
 ```
 
-The long calculated correlation matrix.
+The long calculated correlation matrix. Let's visualise this using a heatmap.
 
 ```{r, fig.cap="A heatmap pairwise correlation of selected numeric variables"}
 
@@ -299,7 +347,7 @@ ggplot(data, aes(x=mcg, y=gvh, color=loc.site)) +
 
 Every variable goes with a slow upward trend except erl this one has a weird curve.
 
-### Class labels
+## Class Labels
 
 Now we need to look at how the data correlates with the classes. The heigth of the peak doesn’t matter much, shifted peaks do.
 
@@ -344,7 +392,7 @@ res.aov[[1]]$`Pr(>F)`[1]
 
 The P-value is < 0.05. So there is a significant difference.
 
-### Multivariate analysis
+## Multivariate analysis
 
 One way to see if groups are clustered is to MDS plot the groups and calculated the distance matrix.
 
@@ -378,7 +426,7 @@ As earlier shown mcg and gvh are grouped together.
 
 \newpage
 
-# MIL algorithms
+# MIL Algorithms
 
 First we need to investigate which standard ML algorithms is the best to use for this dataset using Weka.
 
@@ -394,7 +442,7 @@ Open the .csv in Weka under tools -> ArffViewer. And saved the file as .arff. Th
 cat(readLines("Resources/data.arff", n = 15), sep = "\n")
 ```
 
-**Criteria for MIL algorithms**
+## Criteria For MIL Algorithms
 
 An accurate algorithm is needed that accurately predicts the dataset. It needs a high percentage of correct classifications on the dataset. An algorithm that is fast. What if there is a dataset of 1 million observations. And it should also not contain too many false negatives and false positives.
 
