@@ -1,20 +1,98 @@
 ---
-output: pdf_document
+output:
+  pdf_document: 
+    pandoc_args: --highlight=breezedark
 ---
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment=NA)
 library(tidyr)
-library(knitr)
 library(kableExtra)
-library(pander)
 library(ggplot2)
 library(gridExtra)
-library(ggpmisc)
+library(cowplot)
 library(ggpubr)
-library(ggridges)
+library(pander)
+library(ggbiplot)
+library(reshape2)
 library(ggfortify)
+library(ggalt)
+library(ggridges)
+library(cluster)
 ```
-# Result
+
+<!-- Copyright (c) 2022 John Busker. -->
+
+<!-- Licensed under GPLv3. See gpl.md -->
+
+# Cellular Localization Prediction
+
+## Can the cellular localization Sites of proteins be predicted using probabilistic classification.
+
+![<https://www.hj9l.com/zhidao/changshi/13854.html>](Resources/images/cover.jpg)
+
+
+```{=tex}
+\vspace*{\fill}
+\begin{flushright}
+John Busker\\
+352905\\
+Bio-Informatics\\
+Dave Langers, and Bart Barnard\\
+28-10-2022
+\end{flushright}
+```
+\newpage
+
+# Table of Contents
+
+1. [Introduction](#introduction) \dotfill 3  
+
+2. [Materials and Methods](#materials-and-methods) \dotfill 4  
+3. [Results](#results) \dotfill 5  
+  3.1 [Codebook](#codebook) \dotfill 5  
+  3.2 [Machine Learning](#machine-learning) \dotfill 8  
+
+4. [Discussion and Conclusion](#discussion-and-conclusion) \dotfill 12  
+  4.1 [Discussion](#discussion) \dotfill 12  
+  4.2 [Conclusion](#conclusion) \dotfill 12  
+
+5. [References](#references) \dotfill 13  
+
+\newpage
+
+# Introduction
+
+Protein activities and their subcellular locations in cells are strongly connected. Finding proteins' positions within cells is frequently the initial step in understanding them, and their sites serve as a model for medication design. The amino acid sequence of a protein mostly determines where it will localize within a cell. Using this knowledge, a software has been developed to define a simple model of classification of yeast localization in cells. The efficient arrangement of biological data into databases and the creation of algorithms, such string algorithms, to manipulate that data, have largely defined the area of computational biology. The dataset consists of 1484 yeast sequences from SWISS-PROT using the annotations from YPD.
+
+Research question: Can the cellular localization Sites of proteins be predicted using probabilistic classification.
+
+\newpage
+
+# Materials and Methods
+
+The data has been retrieved from [uci.](https://archive.ics.uci.edu/ml/datasets/Yeast) The dataset consists of 1484 yeast sequences from SWISS-PROT using the annotations from YPD. In this section, we are going to talk about the results we found from the dataset.
+
+Yeast proteins were classified into ten classes: **cytoplasmic:** cytoskeletal (CYT); nuc]ear (NUC); vacuolar (VAC); mitochondrial (MIT); isomal (POX); **extracellular:** including those localized against the cell wall (EXC); proteins localized to the lumen of the endoplasmic reticulum (ERL); membrane proteins with a cleaved signal (ME1); membrane proteins with an uncleared signal (ME2); and membrane proteins with no N-terminal sign (ME3), where ME1, ME2,and ME3 proteins may be localized to the plasma membrane, the endoplasmic reticulum membrane, or the membrane of a golgi body.
+
+Eight features were used in classification. Here below are all the features
+
+-   **mcg**: McGeoch's method for signal sequence recognition.\
+-   **gvh**: von Heijne's method for signal sequence recognition.\
+-   **alm**: Score of the ALOM membrane spanning region prediction program.\
+-   **mit**: Score of discriminant analysis of the amino acid content of the N-terminal region (20 residues long) of mitochondrial and non-mitochondrial proteins.\
+-   **erl**: Presence of "HDEL" substring (thought to act as a signal for retention in the endoplasmic reticulum lumen). Binary attribute.\
+-   **pox**: Peroxisomal targeting signal in the C-terminus.\
+-   **vac**: Score of discriminant analysis of the amino acid content of vacuolar and extracellular proteins.\
+-   **nuc**: Score of discriminant analysis of nuclear localization signals of nuclear and non-nuclear proteins.
+
+It is always important to look at the data and to look at the quality of the data. No proper conclusion can be drawn from low quality data. For recurrent errors the data can be corrected. The data needs to be modified to make sure the data gets the highest quality to perform the analysis on. This is achieved by performing exploratory data analysis on the dataset. Modifying and removing parts of the dataset to get best. A RandomForest classifier has been chosen for the classification of the unknown instances. The parameters has been optimized for usability and speed. See the [logjournal](https://github.com/AlfonsoJan/Theme9).
+
+A java application has been developed. The software using Weka carried out the calculations required to carry out the probabilistic inference. The application can quickly classify new instances given from a file on from the command line. See the [repo](https://bitbucket.org/janalfonso/wekawrapper/) for the code.
+
+\newpage
+
+# Results
 
 To create a great dataset, changes need to be made to the downloaded dataset. The dataset consists of 1484 yeast sequences from SWISS-PROT using the annotations from YPD. In this section, we are going to talk about the results we found from the dataset.
 
@@ -24,7 +102,7 @@ As it is a large dataset, it is wise to look at the codebook first. However, the
 
 Below is a table with a description of all the attributes' abbreviations, explanations, and data types.
 
-```{r}
+```{r, echo=FALSE}
 attr_names <- c("seq.name", "mcg", "gvh", "alm", "mit", "erl",
                 "pox", "vac","nuc", "loc.site" )
 data_types <- c("str", "double", "double", "double", "double", "double",
@@ -50,15 +128,16 @@ kbl(codebook, booktabs = T, align = "c") %>%
   column_spec(2, width = "10cm")
 ```
 
+```{=tex}
 \begin{center}
 \emph{Table 1:} The codebook.
 \end{center}
-
-The last column is the sequence's localization site. There are ten different possibilities for this. Yeast proteins were classified into ten classes: **cytoplasmic:** cytoskeletal (CYT); nuc]ear (NUC); vacuolar (VAC); mitochondrial (MIT); isomal (POX); **extracellular:** including those localized against the cell wall (EXC); proteins localized to the lumen of the endoplasmic reticulum (ERL); membrane proteins with a cleaved signal (ME1); membrane proteins with an uncleared signal (ME2); and membrane proteins with no N-terminal sign (ME3), where ME1, ME2,and ME3 proteins may be localized to the plasma membrane, the endoplasmic reticulum membrane, or the membrane of a golgi body. 
+```
+The last column is the sequence's localization site. There are ten different possibilities for this. Yeast proteins were classified into ten classes: **cytoplasmic:** CYT; NUC; VAC; MIT; POX; **extracellular:** EXC; ERL; ME1; ME2; ME3.
 
 Here are the ten in question:
 
-```{r}
+```{r, echo=FALSE}
 abbrv <- c("CYT", "NUC", "MIT", "ME3", "ME2", "ME1", "EXC", "VAC", "POX", "ERL")
 loc.fullname <- c("cytosolic or cytoskeletal", "nuclear", "mitochondrial", "membrane protein, no N-terminal signal", "membrane protein, uncleaved signal", "membrane protein, cleaved signal", "extracellular", "vacuolar", "peroxisomal", "endoplasmic reticulum lumen")
 amount <- c(463, 429, 244, 163, 51, 44, 37, 30, 20, 5)
@@ -67,33 +146,33 @@ pander(data.frame(Abbreviation=abbrv,
                   Amount=amount))
 ```
 
+```{=tex}
 \begin{center}
 \emph{Table 2:} Sequence localization sites.
 \end{center}
-
+```
 There are alot of CYT and NUC localizations. ERL localization is the least. There are only five of these in the dataset.
 
 ## Dataset
 
 Eight features were used in classification: the presence or absence of an HDEL pattern as a signal for retention in the endoplasmic reticulum lumen (erl); The results of discriminant analysis on the amino acid content of vacuolar and extracellular proteins (vac); the result of discriminant analysis on the amino acid composition of the 20-residue N-terminal region of mitochondrial and non-mitochondrial proteins (mit); the presence or absence of nuclear localization consensus patterns combined with a term reflecting the frequency of basic residues (nuc); and some combination of the presence of a short sequence motif and the result of discriminant analysis of the amino acid composition of the protein sequence (pox).
 
-```{r}
-data <- as_tibble(read.table("yeast.data", sep = ""))
+```{r, echo=FALSE}
+data <- as_tibble(read.table("Resources/yeast.data", sep = ""))
 colnames(data) <- attr_names
 pander(head(data))
 ```
 
+```{=tex}
 \begin{center}
 \emph{Table 3:} First six rows of the dataset.
 \end{center}
-
+```
 As seen from the table, the loaded dataset. It has a char datatype for the first and last column. And every other column has a double datatype.
 
 There are `r nrow(data)` rows and `r ncol(data)` columns.
 
-\newpage
-
-```{r, fig.cap="A waffle chart of the categorical composition", fig.width=6, fig.height=3}
+```{r, fig.cap="A waffle chart of the categorical composition", fig.width=6, fig.height=3, echo=FALSE}
 df <- expand.grid(y = 1:28, x = 1:53)
 categ_table <- sort(table(data$loc.site), decreasing = T)
 df$category <- factor(rep(names(categ_table), categ_table))
@@ -106,43 +185,42 @@ labs(title="Waffle Chart", subtitle="'Class' of localization") +
 xlab(NULL) + ylab(NULL)
 ```
 
-Figure 1 shows the number of each classification of the dataset. There are alot of CYT and NUC localization. And there are only `r nrow(subset(data, loc.site=="ERL", loc.site))` of ERL.
-
-## Clean the data
+Figure 2 shows the number of each classification of the dataset. There are alot of CYT and NUC localization. And there are only `r nrow(subset(data, loc.site=="ERL", loc.site))` of ERL.
 
 To ensure the quality of the data. The data had to be transformed before it could be worked with.
 
 The first column has been dropped since it is not necessary. Since the sequence names contribute nothing to creating a prediction model.
 
-```{r}
+```{r, echo=FALSE}
 data <- data[, -1]
 pander(head(data))
 ```
 
+```{=tex}
 \begin{center}
 \emph{Table 4:} First six rows of the dataset with the first column dropped.
 \end{center}
+```
+As stated on the website there are `r sum(is.na(data))` missing values. This has been confirmed using R.
 
-As stated on the website there are `r sum(is.na(data))` missing values.
-
-```{r}
+```{r, echo=FALSE}
 data$loc.site <- as.factor(data$loc.site)
-str(data$loc.site)
 ```
 
-The data type of the column loc.site has been successfully changed to factors.
+It can be more convenient to have a variable in a factor form instead of numeric form. The data type of the column loc.site has been successfully changed to factors.
 
-The ERL column has changed. from a double to a logical datatype. As seen in figure 2 below, only numbers 1 and 0.5 appear, but for a logical datatype you need 1 and 0. All 0.5 have been changed to 0.
+The ERL column has changed. from a double to a logical datatype. As seen in table 5 below, only numbers 1 and 0.5 appear, but for a logical datatype you need 1 and 0. All 0.5 have been changed to 0.
 
-\newpage
-
-```{r, warning=FALSE, message=FALSE, fig.cap="ERL column data distrubution", fig.width=10, fig.height=4}
-my_list <- as.data.frame(table(data[,"erl"]))
-names(my_list) <- c("Values", "Freq")
-ggplot(data, mapping = aes(x = "", y = erl)) + geom_violin(alpha=0.2) + geom_jitter(width = 0.5, alpha = 0.25, height = 0.005, color = "red") + xlab(NULL) + annotate(geom = "table", x = 0.5, y = 0.75, label = list(my_list)) + ylim(0, 1) + labs(title="ERL Variable", subtitle="Data distrubution")
+```{r, echo=FALSE}
+pander(table(data$erl))
 ```
 
-```{r}
+```{=tex}
+\begin{center}
+\emph{Table 5:} A table showing distrubtion of the ERL column.
+\end{center}
+```
+```{r, echo=FALSE}
 data$erl[data$erl == 0.5] <- 0
 data$erl <- as.logical(data$erl)
 m <- sapply(data, typeof)
@@ -150,90 +228,18 @@ m[m=="integer"] <- "factor"
 pander(m)
 ```
 
+```{=tex}
 \begin{center}
-\emph{Table 5:} Each column name and the typeof the datatype.
+\emph{Table 6:} Each column name and the typeof the datatype.
 \end{center}
-
+```
 Each column has been changed so that it has the right data type.
 
-## Exploratory data analysis
-
-```{r}
-table <- summary(data[, -c(5,9)])
-panderOptions('table.continues', '')
-pander(table)
-```
-
-\begin{center}
-\emph{Table 6:} Summary of the dataset.
-\end{center}
-
-As observed in table 6 the data has already been transformed with a min-max normalisation. All the datapoints are between 0 and 1. Mcg and gvh are normally distributed. Alm and mit are skewed, but nothing too crazy to be worried about. Vac and nuc are really skewed. However, it's not yet bad enough to worry about it. Pox is very oddly distributed.
+At pox, vac and nuc, you don't see shifted peaks. At mcg and gvh you really see shifted peaks this shows a distribution of the different classes. There are small shifted peaks at alm en mit, this shows that there is difference but not so much.
 
 \newpage
 
-```{r, fig.cap="Closer look at the pox variable", fig.width=10, fig.height=4}
-my_list <- as.data.frame(table(data[,"pox"]))
-names(my_list) <- c("Values", "Freq")
-p1 <- ggplot(data, mapping = aes(x = "", y = pox)) + geom_violin(alpha=0.2) + 
-  geom_jitter(width = 0.5, alpha = 0.25, height = 0.005, color = "red") + xlab(NULL)
-p1 + annotate(geom = "table", x = 0.5, y = 0.75, label = list(my_list)) + labs(title="Pox Variable", subtitle="Data distrubution")
-```
-
-Almost all the data points are 0. This could cause problems later on. Since more than 95% of all the data points are 0.
-
-```{r, fig.cap="Frequency plot of pox variablee", fig.height=3}
-d <- as.data.frame(table(subset(data, pox > 0, select=loc.site)))
-ggplot(d, aes(Var1, Freq)) +
-  geom_linerange(
-    aes(x = Var1, ymin = 0, ymax = Freq), 
-    color = "lightgray", size = 1.5
-    )+
-  geom_point(aes(color = Var1), size = 2) + labs(title="Frequency plot of pox variable", x="localization site", y = "Count")
-```
-
-If the pox value is not zero then the classification is Pox, Mit or Cyt. This means that Pox has a high probability when the Pox value is not zero.
-
-With a heatmap, you can easily see where there are correlations between variables.
-
-```{r}
-cor_matrix <- cor(data[, -c(5,9)])
-cor_matrix <- as_tibble(cor_matrix)
-cor_matrix <- cor_matrix %>% mutate(varnames = all_of(attr_names)[-c(1,6,10)])
-kbl(cor_matrix, booktabs = T, align = "c") %>%
-  kable_styling(full_width = T)
-```
-
-\begin{center}
-\emph{Table 7:} The calculated correlation matrix.
-\end{center}
-
-This has been transformed into a long matrix.
-
-```{r}
-cor_matrix_long <- pivot_longer(data = cor_matrix, 
-                                 cols = all_of(attr_names)[-c(1,6,10)], 
-                                 names_to = "variable", values_to = "cor")
-pander(head(cor_matrix_long))
-```
-
-\begin{center}
-\emph{Table 8:} The long calculated correlation matrix.
-\end{center}
-
-```{r, fig.cap="A heatmap pairwise correlation of selected numeric variables", fig.height=4}
-
-ggplot(data = cor_matrix_long, aes(x=varnames, y=variable, fill=cor)) + 
-    geom_tile() + 
-    labs(x=NULL, y=NULL, title="Heatmap Correlation") + 
-    scale_fill_gradient(high = "purple", low = "white" )
-```
-
-As seen from the heatmap, there is some correlation between mcg and gvh. Pox, on the other hand, has almost no correlation with any other variable.
-
-There needs to be data correlation with the classes. The height of the peak doesn’t matter much, shifted peaks do.
-
-```{r, warning=FALSE, message=FALSE, fig.cap="Ridge line plot between mcg and gvh"}
+```{r, warning=FALSE, message=FALSE, fig.cap="Ridge line plot between mcg and gvh", echo=FALSE, fig.width=6, fig.height=6}
 p1 <- ggplot(data, aes(x=mcg, y=loc.site, fill = loc.site)) + 
   geom_density_ridges2(rel_min_height = 0.005) + theme_minimal() + 
   coord_cartesian(clip = "off")
@@ -244,41 +250,111 @@ plot <- ggarrange(p1, p2, common.legend = TRUE)
 annotate_figure(plot, top = text_grob("Ridge line plot", face = "bold", size = 14))
 ```
 
-There are shifted peaks. This shows the distribution of the different classes.
+Now you can really see that the peaks are shifted.
 
-A 1-way ANOVA test was carried out on the data.
+We need to test the data to see if there is significant difference between it. Using a 1-way ANOVA test.
 
-```{r}
+```{r, echo=FALSE}
 # Perform a one way anova test
 res.aov <- summary(aov(mcg ~ loc.site, data = data))
 p.value <- res.aov[[1]]$`Pr(>F)`[1]
 ```
 
-The P-value: `r p.value` is < 0.05. So there is a significant difference.
+The P-value is `r p.value` \< 0.05. So there is a significant difference.
+
+## Machine Learning
+
+Weka was used to test which algorithm is the best to use for the classification of instances. An accurate algorithm is needed that accurately predicts the dataset. It needs a high percentage of correct classifications on the dataset. An algorithm needs to be fast for the best usage. What if there is a dataset of 1 million observations. And it should also not contain too many false negatives and false positives.
+
+Using the experiment of Weka testing has been done on every representatives of all classifier categories. And ZeroR and OneR for a baseline performance. Decision Trees (C4.5, J48, RandomForest), Nearest Neighbor (IBk), SVM (SMO), NaiveBayes (Naïve Bayes) and Linear Logistic (SimpleLogistic). And carried out classifications 10-fold cross validation. The result were saved in a .csv file.
+
+```{r, echo=FALSE}
+weka.result <- read.table("Resources/Result.csv", header = TRUE, sep = ",")
+# Remove weka.classifiers.* from classifier name
+for (i in 1:length(weka.result$Key_Scheme)) {
+  name <- weka.result$Key_Scheme[i]
+  tweaked.name <- strsplit(name, split = ".", fixed = TRUE)[[1]][4]
+  weka.result$Key_Scheme[i] <- tweaked.name
+}
+```
+
+```{r,fig.cap="Area under the curve for different classifiers", echo=FALSE}
+res <- aggregate(Area_under_ROC ~ Key_Scheme, data = weka.result, mean)
+ggplot(data=res, aes(x=Key_Scheme, y=Area_under_ROC, fill=Key_Scheme)) + 
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  labs(x="Classifier", y="Area under curve (ROC)", 
+       title="Area under the curve for different classifiers") + 
+  geom_hline(aes(yintercept=min(Area_under_ROC)), linetype = 'dashed') + 
+  geom_hline(aes(yintercept=max(Area_under_ROC)), linetype = 'dashed') + 
+  geom_text(aes(label=round(Area_under_ROC, digits=2)), vjust=1.5, size=3.5)
+```
+
+An integrated measurement of a measurably effect or phenomena is the area under the curve. A higher Area under the curve the better. RandomForest has the highest area under the curve, while OneR has the lowest with 0.49 and ZeroR with a close second last with 0.5.
+
+The algorithm also needs te be precise.
 
 \newpage
 
-```{r, fig.cap="Classical (Metric) Multidimensional Scaling", fig.width=4, fig.height=2.5}
-matrix <- with(data, rbind(mcg, gvh, alm, mit, pox, vac, nuc))
-distmat <- dist(matrix)
-autoplot(cmdscale(distmat, eig = TRUE), shape = FALSE, label = TRUE, label.size = 4)
+```{r, fig.cap="Average precisionfor different classifiers", echo=FALSE}
+res <- aggregate(IR_precision ~ Key_Scheme, data = weka.result, mean)
+
+ggplot(data=res, aes(x=Key_Scheme, y=IR_precision, fill=Key_Scheme)) + 
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  labs(x="Classifier", y="Precision", 
+       title="Average precision for different classifiers") + 
+  geom_hline(aes(yintercept=min(IR_precision)), linetype = 'dashed') + 
+  geom_hline(aes(yintercept=max(IR_precision)), linetype = 'dashed') + 
+  geom_text(aes(label=round(IR_precision, digits=2)), vjust=1.5, size=3.5)
+
 ```
 
-As found in the heatmap, Mcg and Gvh are clustered. Vac and Alm are somewhat clustered; they are close to each other. Nuc, Mit and Pox are all on their own.
+RandomForest also has the highest average precision with 0.66. And OneR has the lowest with 0.04. ZeroR is not in this plots because it only consist of NaN.
 
-```{r, fig.cap="PCA plot", fig.width=6, fig.height=3}
-df <- data[-c(5,9)]
+Several algorithms cannot make a prediction for the classification VAC (0.000) and for some they get an error (?). 1 algorithm IBk has a very low prediction for VAC. All the algorithm above in the figure except for ZeroR, OneR, SMO and SimpleLogistic were used in the Weka Experimenter to compare.
 
-pca_res <- prcomp(df, scale. = TRUE)
+![Ranking of chosen algorithms](%22Resources/images/WekaSD.png%22)
 
-autoplot(pca_res, data = data, colour = 'loc.site', loadings = TRUE, loadings.label = TRUE)
-```
+RandomForest has a 'v' next to their result. This means that the difference in the accuracy for these algorithms compared to all the other algorithms is significant. And RandomForest beat all 4 algorithms.
 
-Mcg and Gvh are also clustered in this PCA plot. As such, in contrast with the MDS plot, Vac and Alm are not clustered at all. Pox is in the centre.
+The classification of VAC seems to be the most concerning of all. It has been removed and tested against not removed. To see if there is an significant difference.
 
 \newpage
 
-# Discussion & Conclusion
+![Removed class difference](%22Resources/images/WekaDataEdit.png%22)
+
+There is no significant difference between removing VAC and keeping VAC.
+
+Weka will find the optimal parameters for a classifier. With CVParameterSelection in Weka were the best parameters found.
+
+```{r, echo=FALSE}
+attr <- c("P", "I", "num-slots", "K", "M", "V", "S")
+attr.descr <- c("Size of each bag, as a percentage of the training set size.", 
+                "Number of iterations.", "Number of execution slots.", 
+                "Number of attributes to randomly investigate.", 
+                "Number of attributes to randomly investigate.", 
+                "Set minimum numeric class variance proportion.", 
+                "Seed for random number generator.")
+old.val <- c(100, 100, 1, 0, 1, 0.001, 1)
+new.val <- c(50, 1000, 0, 1, 1, 0.001, 1)
+pander(data.frame(Attribute=attr, Description=attr.descr, Old.Values=old.val, New.Values=new.val))
+```
+
+```{=tex}
+\begin{center}
+\emph{Table 7:} Each parameter with the old and new best value if necessary.
+\end{center}
+```
+This table shows the parameters with their default settings and their new. P, I, num-slots and K were different than the default settings. The build will take more time because it does 10 times more I(terations).
+
+![Iterations ranked]("Resources/images/WekaIterRank.png")
+
+Number 1 in the figure above is with 1000 I(terations) and number 2 is 100 I(terations). And there is not a significant difference.
+
+\newpage
+
+# Discussion and Conclusion
 
 The research question is: can machine learning predict protein localization based on their aminoacid sequences? And to answer this question properly, a clean dataset is needed to create a model. The results will show what is wrong with the data and the correlations between the different classifications. The results are not completely trustworthy because there is too little of them. Namely, there are only 1484 oberservations. This is too few for prediction with 10 different classifications.
 
@@ -288,6 +364,14 @@ Nor was the Erl column considered. This indicates the presence of the "HDEL" sub
 
 In the case of the Pox column, something strange was noticed. Out of 1484 datapoints, 15 are not zero. 11 of them have the classification of Pox. This means that if the value is not zero, the classification is highly probable Pox.
 
+Only 8 classifiers had been used. From our research, we found that RandomForest is the best, however, perhaps another untested classifier is much better than RandomForest. Only the removal of VAC was considered what if much better precision and classification would have run if another classifier had been removed.
+
 ## Conclusion
 
 The aim was to create a clean dataset to be used for our machine learning project. There is a clean dataset with no missing values and the correct data types. The data gives a clear overview of the protein classification and their attributes. However, not much was available. With only 1484 observations, this is just too little. And there is a very big difference between the number of observations per classification. For ERL there are only 5 observations, and for CYT there are 463. There is too big a difference between these. By improving this dataset over time, the prediction can be perfected even more. These constant improvements are important to find.
+
+1484 yeast proteins were classified into 10 classes with an accuracy of 61%.
+
+\newpage
+
+# References
